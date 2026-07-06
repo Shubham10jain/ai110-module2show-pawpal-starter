@@ -3,8 +3,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-VALID_FREQUENCIES = {"once", "daily", "weekly"}
-
 
 @dataclass
 class Task:

@@ -1,0 +1,49 @@
+classDiagram
+    %% PawPal+ final UML (Phase 6) - matches pawpal_system.py
+
+    class Task {
+        +str title
+        +str category
+        +str time
+        +int duration_minutes
+        +str priority
+        +str frequency
+        +bool completed
+        +str date
+        +mark_complete() None
+        +next_occurrence() Task | None
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +list~str~ medications
+        +list~Task~ tasks
+        +add_task(task) None
+        +task_count() int
+    }
+
+    class Owner {
+        +str name
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +get_pet(name) Pet | None
+        +all_tasks() list~tuple~
+    }
+
+    class Scheduler {
+        +Owner owner
+        +get_today_schedule() list~tuple~
+        +sort_by_time(pet_tasks) list~tuple~
+        +filter_tasks(pet_tasks, pet_name, completed) list~tuple~
+        +detect_conflicts(pet_tasks) list~str~
+        +mark_task_complete(pet, task) Task | None
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : has
+    Scheduler "1" --> "1" Owner : reads live via all_tasks()
+
+    note for Scheduler "Holds a reference to Owner, not a copy.\nAlways reads owner.all_tasks() so it\nnever goes stale after pets/tasks are added."
+    note for Task "next_occurrence() returns None unless\nfrequency is 'daily' or 'weekly'.\nUsed by Scheduler.mark_task_complete()\nto auto-schedule recurring tasks."

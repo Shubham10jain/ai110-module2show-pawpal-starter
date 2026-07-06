@@ -59,13 +59,11 @@ The scheduler considers task `time` (for ordering), `date` (for "today's schedul
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used Claude Code (in agent mode inside VS Code) end-to-end: drafting the initial Mermaid UML from my brainstormed classes, generating dataclass skeletons from that UML, fleshing out the full `Owner`/`Pet`/`Task`/`Scheduler` implementation, writing the `main.py` CLI demo, wiring `app.py` to the backend with `st.session_state`, and drafting the pytest suite. The most helpful prompts were the ones scoped to one concrete behavior at a time (e.g., "how should Scheduler retrieve all tasks from the Owner's pets" and "sort Task objects by their HH:MM time attribute using a lambda key") rather than open-ended "build the whole app" requests — narrow prompts produced code I could verify immediately by running `main.py` or `pytest`.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+The agent's first pass at `Scheduler` considered caching `owner.all_tasks()` as a snapshot on `Scheduler.__init__`. I rejected that in favor of always reading live from `owner.all_tasks()` on each call, because a cached snapshot would go stale the moment a pet or task was added after the `Scheduler` was constructed — exactly the kind of bug that wouldn't show up in a quick demo but would break the moment a user added a pet mid-session in the Streamlit app. I verified this by tracing through `app.py`: the `Scheduler` is instantiated fresh from `st.session_state.owner` on every rerun, so a stale internal list would never have been an issue there specifically, but keeping the read live also makes `Scheduler` safe to reuse across multiple `main.py`-style scripts without re-instantiating it after every mutation.
 
 ---
 
@@ -85,12 +83,12 @@ The scheduler considers task `time` (for ordering), `date` (for "today's schedul
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I'm most satisfied with keeping `Scheduler` as a thin coordination layer instead of letting scheduling logic leak into `Owner` or `Pet`. Because `Owner`/`Pet`/`Task` stayed simple data holders, every algorithmic feature (sorting, filtering, conflicts, recurrence) landed in one place and was straightforward to unit test in isolation.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+The exact-time-match conflict detection (documented in section 2b) is the piece I'd redesign first — a duration-aware overlap check would be more realistic for pet care tasks that actually take time (a 30-minute walk, a vet appointment). I'd also add validation on `Task.frequency`/`priority` so a typo like `"dailly"` fails loudly instead of silently never recurring.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+Being the "lead architect" meant the AI was fastest and most reliable when I gave it a narrow, already-decided scope (one method, one file, one behavior) — it was much more useful as an implementer of decisions I'd already made (four classes, `Scheduler` as the brain, live reads over caching) than as the source of those decisions. The UML-first workflow paid off: because the class boundaries were fixed before any code existed, later AI-assisted edits (adding recurrence, adding conflict detection) were additive instead of requiring restructuring.

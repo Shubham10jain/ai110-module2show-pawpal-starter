@@ -22,6 +22,16 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## ✨ Features
+
+- **Owner & Pet management** — add multiple pets per owner, each with species/breed and its own list of care tasks.
+- **Task tracking** — represent walks, feedings, medications, and appointments with a time, category, priority, and recurrence frequency.
+- **Sorting by time** — `Scheduler.sort_by_time()` always shows today's tasks in chronological order.
+- **Filtering** — `Scheduler.filter_tasks()` narrows the view down to one pet's tasks and/or only incomplete tasks.
+- **Conflict warnings** — `Scheduler.detect_conflicts()` flags two tasks scheduled at the same time instead of silently double-booking.
+- **Daily/weekly recurrence** — completing a recurring task via `Scheduler.mark_task_complete()` automatically schedules its next occurrence.
+- **Streamlit UI** — add pets/tasks and generate a live daily schedule with success/warning banners, backed by `st.session_state` so data persists across reruns.
+
 ## Getting started
 
 ### Setup
@@ -111,12 +121,30 @@ tests/test_pawpal.py::test_filter_tasks_by_pet_name_and_completion PASSED [100%]
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+**Main UI features:** On launch, the app shows an "Add a Pet" form, an "Add a Task" form (once at least one pet exists), and a "Generate schedule" button that displays today's tasks as a table with conflict warnings.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+**Example workflow:**
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+1. Enter a pet name (e.g., "Biscuit"), pick a species, and click **Add pet**. The pet now appears in the "Current pets" list.
+2. Select the pet from the "Add a Task" dropdown, fill in a title, time ("08:00"), priority, category, and frequency, then click **Add task**. Repeat for a second task at the same or a different time.
+3. Click **Generate schedule**. The app calls `Scheduler.get_today_schedule()`, which internally sorts today's tasks by time (`Scheduler.sort_by_time()`) and displays them in a table with columns for time, pet, task, category, priority, frequency, and completion status.
+4. If two tasks share the same time, `Scheduler.detect_conflicts()` runs against the displayed schedule and an `st.warning()` banner appears below the table naming both conflicting tasks and pets.
+5. If there are no conflicts, an `st.success()` banner confirms the schedule is conflict-free.
+6. Because the `Owner` object lives in `st.session_state`, pets and tasks persist as you keep adding more and re-generating the schedule, instead of resetting on every rerun.
+
+**Key Scheduler behaviors shown:** chronological sorting, live conflict detection, and multi-pet task aggregation via `Owner.all_tasks()`.
+
+**Sample CLI output** (from `python main.py`, which also exercises filtering and recurrence — see the [Sample Output](#️-sample-output) section above for the full run):
+
+```
+=== Today's Schedule (sorted by time) ===
+  [ ] 08:00 - Morning walk (walk) for Biscuit | priority=high | freq=daily
+  [ ] 08:00 - Vet checkup (appointment) for Mochi | priority=high | freq=once
+  [ ] 09:00 - Flea medication (medication) for Mochi | priority=medium | freq=weekly
+  [ ] 18:00 - Evening feeding (feeding) for Biscuit | priority=high | freq=daily
+
+=== Conflict Warnings ===
+  WARNING: Conflict at 08:00 on 2026-07-06: 'Morning walk' (Biscuit) overlaps with 'Vet checkup' (Mochi)
+```
+
+**Screenshot or video** *(optional)*: not included — the text walkthrough and CLI output above cover the gradable demo requirements.

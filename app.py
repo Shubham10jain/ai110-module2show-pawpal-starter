@@ -1,88 +1,116 @@
 import streamlit as st
 
+from pawpal_system import Owner, Pet, Task, Scheduler
+
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 st.title("🐾 PawPal+")
 
 st.markdown(
     """
-Welcome to the PawPal+ starter app.
-
-This file is intentionally thin. It gives you a working Streamlit app so you can start quickly,
-but **it does not implement the project logic**. Your job is to design the system and build it.
-
-Use this app as your interactive demo once your backend classes/functions exist.
+Welcome to **PawPal+**, your pet care planning assistant. Add your pets and their
+care tasks below, then generate a smart daily schedule.
 """
 )
 
-with st.expander("Scenario", expanded=True):
-    st.markdown(
-        """
-**PawPal+** is a pet care planning assistant. It helps a pet owner plan care tasks
-for their pet(s) based on constraints like time, priority, and preferences.
+# --- Session state: keep one Owner alive across reruns ---
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner(name="Jordan")
 
-You will design and implement the scheduling logic and connect it to this Streamlit UI.
-"""
-    )
-
-with st.expander("What you need to build", expanded=True):
-    st.markdown(
-        """
-At minimum, your system should:
-- Represent pet care tasks (what needs to happen, how long it takes, priority)
-- Represent the pet and the owner (basic info and preferences)
-- Build a plan/schedule for a day that chooses and orders tasks based on constraints
-- Explain the plan (why each task was chosen and when it happens)
-"""
-    )
+owner = st.session_state.owner
+scheduler = Scheduler(owner)
 
 st.divider()
 
-st.subheader("Quick Demo Inputs (UI only)")
-owner_name = st.text_input("Owner name", value="Jordan")
-pet_name = st.text_input("Pet name", value="Mochi")
-species = st.selectbox("Species", ["dog", "cat", "other"])
-
-st.markdown("### Tasks")
-st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
-
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
-
+# --- Add a pet ---
+st.subheader("Add a Pet")
 col1, col2, col3 = st.columns(3)
 with col1:
-    task_title = st.text_input("Task title", value="Morning walk")
+    pet_name = st.text_input("Pet name", value="", key="new_pet_name")
 with col2:
-    duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
+    species = st.selectbox("Species", ["dog", "cat", "other"], key="new_pet_species")
 with col3:
-    priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
+    breed = st.text_input("Breed (optional)", value="", key="new_pet_breed")
 
-if st.button("Add task"):
-    st.session_state.tasks.append(
-        {"title": task_title, "duration_minutes": int(duration), "priority": priority}
-    )
+if st.button("Add pet"):
+    if pet_name.strip():
+        owner.add_pet(Pet(name=pet_name.strip(), species=species, breed=breed.strip()))
+        st.success(f"Added {pet_name}!")
+    else:
+        st.warning("Please enter a pet name.")
 
-if st.session_state.tasks:
-    st.write("Current tasks:")
-    st.table(st.session_state.tasks)
+if owner.pets:
+    st.write("Current pets:", ", ".join(p.name for p in owner.pets))
 else:
-    st.info("No tasks yet. Add one above.")
+    st.info("No pets yet. Add one above.")
 
 st.divider()
 
-st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+# --- Add a task ---
+st.subheader("Add a Task")
+
+if owner.pets:
+    task_pet_name = st.selectbox("Pet", [p.name for p in owner.pets], key="task_pet_name")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        task_title = st.text_input("Task title", value="Morning walk", key="task_title")
+    with col2:
+        task_time = st.text_input("Time (HH:MM)", value="08:00", key="task_time")
+    with col3:
+        task_priority = st.selectbox("Priority", ["low", "medium", "high"], index=2, key="task_priority")
+
+    col4, col5 = st.columns(2)
+    with col4:
+        task_category = st.selectbox(
+            "Category", ["walk", "feeding", "medication", "appointment", "other"], key="task_category"
+        )
+    with col5:
+        task_frequency = st.selectbox("Frequency", ["once", "daily", "weekly"], key="task_frequency")
+
+    if st.button("Add task"):
+        pet = owner.get_pet(task_pet_name)
+        pet.add_task(
+            Task(
+                title=task_title,
+                category=task_category,
+                time=task_time,
+                priority=task_priority,
+                frequency=task_frequency,
+            )
+        )
+        st.success(f"Added '{task_title}' for {task_pet_name} at {task_time}.")
+else:
+    st.info("Add a pet first before adding tasks.")
+
+st.divider()
+
+# --- Generate schedule ---
+st.subheader("Today's Schedule")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+    schedule = scheduler.get_today_schedule()
+
+    if not schedule:
+        st.info("No tasks scheduled for today yet.")
+    else:
+        st.table(
+            [
+                {
+                    "Time": task.time,
+                    "Pet": pet.name,
+                    "Task": task.title,
+                    "Category": task.category,
+                    "Priority": task.priority,
+                    "Frequency": task.frequency,
+                    "Done": "✅" if task.completed else "⬜",
+                }
+                for pet, task in schedule
+            ]
+        )
+
+        conflicts = scheduler.detect_conflicts(schedule)
+        if conflicts:
+            for warning in conflicts:
+                st.warning(f"⚠️ {warning}")
+        else:
+            st.success("No scheduling conflicts detected.")

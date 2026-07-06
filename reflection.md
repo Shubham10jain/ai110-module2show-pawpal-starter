@@ -47,13 +47,11 @@ After reviewing the skeleton with my AI coding assistant, I confirmed the `Sched
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers task `time` (for ordering), `date` (for "today's schedule" and conflict checks), `priority` (surfaced to the user but not currently used to reorder), `frequency` (for recurrence), and `completed` status (for filtering). Time and date mattered most because the core use case is "what do I need to do today, in what order" — priority and completion are secondary lenses layered on top via filtering rather than baked into the sort itself.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+`Scheduler.detect_conflicts()` only flags tasks with the *exact same* `(date, time)` string — it does not account for task duration or overlapping time ranges (e.g., a 30-minute walk starting at 08:00 wouldn't be flagged against a task at 08:15, even though they'd overlap in real life). This is reasonable for this scenario because pet care tasks are typically quick, discrete events rather than long blocking appointments, and exact-match detection is simple, fast, and easy to reason about. A duration-aware overlap check would be a natural next step (see Testing section for edge cases I'd add next).
 
 ---
 
@@ -75,13 +73,11 @@ After reviewing the skeleton with my AI coding assistant, I confirmed the `Sched
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+`tests/test_pawpal.py` covers: marking a task complete, adding a task increasing a pet's task count, sorting tasks chronologically, recurrence creating a next-day task for a daily task, recurrence *not* triggering for a one-time task, conflict detection flagging two tasks at the same date/time across different pets, and filtering by pet name and completion status. These matter because they're the exact behaviors the scheduler promises (accurate ordering, safe recurrence, non-crashing conflict warnings) — if any of them silently broke, the app would show a wrong or misleading daily plan to a pet owner.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+⭐⭐⭐⭐ (4/5). All 7 tests pass and cover the happy path plus a couple of edge cases (non-recurring task, multi-pet conflicts). With more time I'd test: a pet with zero tasks, weekly recurrence math across month boundaries, conflicts across midnight, and sorting stability when multiple tasks share the same time.
 
 ---
 

@@ -47,11 +47,27 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+=== Today's Schedule (sorted by time) ===
+  [ ] 08:00 - Morning walk (walk) for Biscuit | priority=high | freq=daily
+  [ ] 08:00 - Vet checkup (appointment) for Mochi | priority=high | freq=once
+  [ ] 09:00 - Flea medication (medication) for Mochi | priority=medium | freq=weekly
+  [ ] 18:00 - Evening feeding (feeding) for Biscuit | priority=high | freq=daily
+
+=== Conflict Warnings ===
+  WARNING: Conflict at 08:00 on 2026-07-06: 'Morning walk' (Biscuit) overlaps with 'Vet checkup' (Mochi)
+
+=== Filtered: Biscuit's tasks only ===
+  [ ] 08:00 - Morning walk (walk) for Biscuit | priority=high | freq=daily
+  [ ] 18:00 - Evening feeding (feeding) for Biscuit | priority=high | freq=daily
+
+=== After completing Biscuit's morning walk ===
+  Next occurrence scheduled for 2026-07-07 at 08:00
+
+=== Filtered: Incomplete tasks only ===
+  [ ] 18:00 - Evening feeding (feeding) for Biscuit | priority=high | freq=daily
+  [ ] 08:00 - Morning walk (walk) for Biscuit | priority=high | freq=daily
+  [ ] 09:00 - Flea medication (medication) for Mochi | priority=medium | freq=weekly
+  [ ] 08:00 - Vet checkup (appointment) for Mochi | priority=high | freq=once
 ```
 
 ## 🧪 Testing PawPal+
@@ -67,19 +83,31 @@ pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0
+collected 7 items
+
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED           [ 14%]
+tests/test_pawpal.py::test_add_task_increases_pet_task_count PASSED      [ 28%]
+tests/test_pawpal.py::test_sort_by_time_returns_chronological_order PASSED [ 42%]
+tests/test_pawpal.py::test_recurrence_creates_task_for_next_day PASSED   [ 57%]
+tests/test_pawpal.py::test_recurrence_does_not_trigger_for_one_time_task PASSED [ 71%]
+tests/test_pawpal.py::test_detect_conflicts_flags_same_time_same_day PASSED [ 85%]
+tests/test_pawpal.py::test_filter_tasks_by_pet_name_and_completion PASSED [100%]
+
+============================== 7 passed in 0.02s ===============================
 ```
+
+**Confidence Level:** ⭐⭐⭐⭐ (4/5) — Core behaviors (completion, task counts, sorting, recurrence, conflict detection, filtering) are all covered and passing. I'd want to add more edge cases (pet with zero tasks, tasks at midnight/end-of-day boundaries, weekly recurrence math) before calling it 5/5.
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_time()` | Sorts `(pet, task)` pairs chronologically using `task.time` ("HH:MM") as the sort key. |
+| Filtering | `Scheduler.filter_tasks(pet_name=..., completed=...)` | Filters by pet name and/or completion status; either can be applied alone or together. |
+| Conflict handling | `Scheduler.detect_conflicts()` | Flags any two tasks that share the same `(date, time)` and returns human-readable warning strings instead of raising an error. |
+| Recurring tasks | `Task.next_occurrence()` + `Scheduler.mark_task_complete()` | Completing a `daily`/`weekly` task automatically creates and schedules its next occurrence (`+1` or `+7` days) via `datetime.timedelta`. |
 
 ## 📸 Demo Walkthrough
 
